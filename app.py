@@ -63,12 +63,12 @@ def render():
 
 
 @app.get("/", response_class=HTMLResponse)
-def index():
+async def index():
     return render()
 
 
 @app.post("/add")
-def add(text: str = Form("")):
+async def add(text: str = Form("")):
     text = text.strip()
     if text:
         NOTES.append({"id": _next_id[0], "text": text})
@@ -77,7 +77,7 @@ def add(text: str = Form("")):
 
 
 @app.post("/delete/{note_id}")
-def delete(note_id: int):
+async def delete(note_id: int):
     global NOTES
     NOTES[:] = [n for n in NOTES if n["id"] != note_id]
     return RedirectResponse("/", status_code=303)
