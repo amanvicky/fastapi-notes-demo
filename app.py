@@ -2,10 +2,14 @@
 
 In cleanroom's in-tab VM the app is driven directly through ASGI (the
 VM's own event loop plays the role uvicorn plays on a machine): no
-sockets, nothing listens, the page is the app's only network. The store
-is an in-memory dict — the VM has no database.
+sockets, nothing listens, the page is the app's only network. Form
+fields are read from the raw body with parse_qsl — the most portable
+way to take a POST. The store is an in-memory dict — the VM has no
+database.
 """
-from fastapi import FastAPI, Form
+from urllib.parse import parse_qsl
+
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI(title="Notes")
@@ -68,8 +72,9 @@ async def index():
 
 
 @app.post("/add")
-async def add(text: str = Form("")):
-    text = text.strip()
+async def add(request: Request):
+    fields = dict(parse_qsl((await request.body()).decode("utf-8")))
+    text = (fields.get("text") or "").strip()
     if text:
         NOTES.append({"id": _next_id[0], "text": text})
         _next_id[0] += 1
@@ -77,8 +82,7 @@ async def add(text: str = Form("")):
 
 
 @app.post("/delete/{note_id}")
-async def delete(note_id: int):
-    global NOTES
+async def delete(request: Request, note_id: int):
     NOTES[:] = [n for n in NOTES if n["id"] != note_id]
     return RedirectResponse("/", status_code=303)
 
